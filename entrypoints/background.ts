@@ -13,9 +13,11 @@
 import type { Bird } from '../src/typeConst';
 
 // eBird API設定
-const EBIRD_API_KEY = import.meta.env.VITE_EBIRD_API_KEY;
+const EBIRD_API_KEY = (import.meta as any).env?.VITE_EBIRD_API_KEY;
 const EBIRD_BASE_URL = 'https://api.ebird.org/v2';
 const MACAULAY_BASE_URL = 'https://search.macaulaylibrary.org/api/v1';
+
+const WAIT_NEXT_BIRD_TIME = 60000;
 
 /**
  * eBirdの観測データ型定義
@@ -40,6 +42,10 @@ export default defineBackground(() => {
   let isPaused = false;
   let region = '';
   let offscreenCreated = false;
+  let isWaiting = false;
+  let waitingTimeout: number | null = null;
+  let waitingStartTime: number | null = null;
+  let startupReason: string = 'unknown';
 
   /**
    * Offscreen ドキュメントのセットアップを行います。
@@ -119,10 +125,19 @@ export default defineBackground(() => {
   async function getFullState() {
     const offscreenState = await getOffscreenState();
     
+    // 待機中の残り時間を計算
+    let remainingTime = 0;
+    if (isWaiting && waitingStartTime) {
+      const elapsed = Date.now() - waitingStartTime;
+      remainingTime = Math.max(0, WAIT_NEXT_BIRD_TIME - elapsed);
+    }
+    
     return {
       // Offscreen の実状態を優先
       isPlaying: (offscreenState && typeof offscreenState.isPlaying === 'boolean') ? (offscreenState.isPlaying || isPlaying) : isPlaying,
       isPaused: (offscreenState && typeof offscreenState.isPaused === 'boolean') ? (offscreenState.isPaused || isPaused) : isPaused,
+      isWaiting,
+      waitingRemainingTime: remainingTime,
       currentBird,
       region,
       audioState: offscreenState
@@ -352,6 +367,38 @@ export default defineBackground(() => {
   }
 
   /**
+   * 60秒待機してから次の鳥を再生します。
+   * 待機中はポップアップに状態を通知します。
+   */
+  async function playNextWithWait() {
+    if (isWaiting) {
+      console.log('[Background] Already waiting, skipping...');
+      return;
+    }
+
+    isWaiting = true;
+    waitingStartTime = Date.now();
+    notifyPopup('waitingStarted');
+
+    console.log('[Background] Starting 60-second wait before next bird...');
+    
+    waitingTimeout = setTimeout(async () => {
+      console.log('[Background] Wait completed, playing next bird...');
+      isWaiting = false;
+      waitingTimeout = null;
+      waitingStartTime = null;
+      
+      const bird = await searchBirdAudio(region);
+      if (bird) {
+        currentBird = bird;
+        await playBirdAudio(bird);
+        await saveState();
+        notifyPopup('birdChanged', bird);
+      }
+    }, WAIT_NEXT_BIRD_TIME); // 60秒
+  }
+
+  /**
    * 次の鳥（検索結果からランダム）を取得して再生します。
    * 状態を保存し、ポップアップに `birdChanged` を通知します。
    */
@@ -407,10 +454,10 @@ export default defineBackground(() => {
     if (msg.type === 'offscreenEvent') {
       console.log(`[Background] Offscreen event: ${msg.event} , isPlaying: ${isPlaying}, isPaused: ${isPaused}`);
       
-      // 再生終了時は次の曲を再生
+      // 再生終了時は60秒待機してから次の曲を再生
       if (msg.event === 'audioEnded' && isPlaying && !isPaused) {
-        // 自動的に次の曲を再生
-        playNext();
+        // 60秒待機してから次の曲を再生
+        playNextWithWait();
       // エラー時は次の曲を再生
       } else if (msg.event === 'audioError' && isPlaying && !isPaused) {
         // エラー時も次の曲を試す
@@ -460,6 +507,15 @@ export default defineBackground(() => {
         isPlaying = false;
         isPaused = false;
         currentBird = null;
+        
+        // 待機中の場合、タイマーをキャンセル
+        if (isWaiting && waitingTimeout) {
+          clearTimeout(waitingTimeout);
+          isWaiting = false;
+          waitingTimeout = null;
+          waitingStartTime = null;
+          notifyPopup('waitingCancelled');
+        }
         
         // Offscreenに停止を指示
         await chrome.runtime.sendMessage({
@@ -515,8 +571,21 @@ export default defineBackground(() => {
     return true;
   });
 
-  // 初期化時に状態を復元
-  chrome.storage.local.get(['playbackState']).then(async (data) => {
+  /**
+   * viewウィンドウフラグをクリアする共通処理
+   */
+  async function clearViewWindowFlag(context: string) {
+    try {
+      await chrome.storage.local.remove(['viewWindowOpen']);
+      console.log(`[Background] Cleared viewWindowOpen flag on ${context}`);
+    } catch (error) {
+      console.error(`[Background] Failed to clear viewWindowOpen flag on ${context}:`, error);
+    }
+  }
+
+  // 初期化処理を実行する共通関数
+  async function initializePlayback() {
+    const data = await chrome.storage.local.get(['playbackState']);
     if (data.playbackState) {
       isPlaying = data.playbackState.isPlaying;
       isPaused = data.playbackState.isPaused;
@@ -527,7 +596,8 @@ export default defineBackground(() => {
         isPlaying,
         isPaused,
         currentBird: currentBird?.commonName,
-        region
+        region,
+        startupReason
       });
       
       // 再生中だった場合は再開
@@ -540,12 +610,89 @@ export default defineBackground(() => {
         
         // Offscreenが再生していない場合のみ再開
         if (!offscreenState.isPlaying && !isPaused) {
-          console.log('[Background] Resuming playback...');
-          await playBirdAudio(currentBird);
+          // オプション設定を確認
+          const options = await getOptions();
+          const shouldResume = shouldResumePlayback(options, startupReason);
+          
+          if (shouldResume) {
+            console.log('[Background] Resuming playback...');
+            await playBirdAudio(currentBird);
+          } else {
+            console.log('[Background] Auto-resume disabled, not resuming playback');
+            // オプションで無効化されている場合は再生状態を停止に変更
+            isPlaying = false;
+            isPaused = false;
+            currentBird = null;
+            await saveState();
+          }
         } else {
           console.log('[Background] Offscreen already playing, syncing state...');
         }
       }
     }
+  }
+
+  // 拡張機能の初回インストール/更新時にフラグをクリア
+  chrome.runtime.onInstalled.addListener(async () => {
+    startupReason = 'installed';
+    clearViewWindowFlag('installation/update');
+    await initializePlayback();
   });
+
+  // ブラウザ起動時にフラグをクリア
+  chrome.runtime.onStartup.addListener(async () => {
+    startupReason = 'startup';
+    clearViewWindowFlag('browser startup');
+    await initializePlayback();
+  });
+
+  /**
+   * オプション設定を取得します。
+   * @returns オプション設定オブジェクト
+   */
+  async function getOptions() {
+    try {
+      const result = await chrome.storage.sync.get(['autoResume']);
+      return {
+        autoResume: result.autoResume === true // デフォルトはfalse
+      };
+    } catch (error) {
+      console.error('[Background] Failed to get options:', error);
+      return { autoResume: false };
+    }
+  }
+
+
+  // サービスワーカーのkill→自動起動時の処理
+  // onStartup/onInstalledが発火しない場合の初期化処理
+  // setTimeout(async () => {
+  //   if (startupReason === 'unknown') {
+  //     console.log('[Background] Service worker restart detected, initializing...');
+  //     await initializePlayback();
+  //   }
+  // }, 100);
+
+  /**
+   * 再生再開すべきかを判定します。
+   * @param options オプション設定
+   * @param reason 起動理由
+   * @returns 再生再開すべきかどうか
+   */
+  function shouldResumePlayback(options: { autoResume: boolean }, reason: string): boolean {
+    // サービスワーカーのkill→自動起動時は無条件で再生再開
+    if (reason === 'unknown') {
+      console.log('[Background] Service worker restart detected, resuming unconditionally');
+      return true;
+    }
+    
+    // ブラウザ起動時や拡張機能インストール/更新時はオプション設定に従う
+    if (reason === 'startup' || reason === 'installed') {
+      console.log('[Background] Browser startup/install detected, checking autoResume option:', options.autoResume);
+      return options.autoResume;
+    }
+    
+    // その他の場合は再生再開しない
+    console.log('[Background] Unknown startup reason, not resuming');
+    return false;
+  }
 });

@@ -11,6 +11,89 @@ console.log('[Offscreen] Audio player initialized');
 
 let audioElement: HTMLAudioElement | null = null;
 let currentBirdInfo: any = null;
+let currentBlobUrl: string | null = null;
+
+// Web Audio API のコンポーネント
+let audioContext: AudioContext | null = null;
+let sourceNode: MediaElementAudioSourceNode | null = null;
+let compressorNode: DynamicsCompressorNode | null = null;
+let gainNode: GainNode | null = null;
+
+/**
+ * 外部URLから音声データをダウンロードしてBlobとして取得します。
+ * Chrome拡張機能のコンテキストからのfetchはCORS制限を受けません。
+ */
+async function downloadAudioAsBlob(url: string): Promise<Blob> {
+  console.log('[Offscreen] Downloading audio from:', url);
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to download audio: ${response.status} ${response.statusText}`);
+  }
+  
+  const blob = await response.blob();
+  console.log('[Offscreen] Audio downloaded, size:', blob.size, 'bytes');
+  return blob;
+}
+
+/**
+ * Web Audio API のセットアップを行います。
+ * DynamicsCompressorNode を使用して音量を正規化し、
+ * GainNode でユーザー設定の音量を適用します。
+ */
+function setupAudioContext(audio: HTMLAudioElement) {
+  // AudioContextを初回のみ作成
+  if (!audioContext) {
+    audioContext = new AudioContext();
+    
+    // コンプレッサーノードを作成（音量を均一化）
+    compressorNode = audioContext.createDynamicsCompressor();
+    compressorNode.threshold.setValueAtTime(-24, audioContext.currentTime); // dB
+    compressorNode.knee.setValueAtTime(30, audioContext.currentTime);
+    compressorNode.ratio.setValueAtTime(12, audioContext.currentTime);
+    compressorNode.attack.setValueAtTime(0.003, audioContext.currentTime); // 秒
+    compressorNode.release.setValueAtTime(0.25, audioContext.currentTime); // 秒
+
+    // ゲインノードを作成（ユーザー設定の音量調整用）
+    gainNode = audioContext.createGain();
+    gainNode.gain.setValueAtTime(0.7, audioContext.currentTime); // デフォルト音量
+
+    // コンプレッサーとゲインを接続
+    compressorNode.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    console.log('[Offscreen] Web Audio API initialized');
+  }
+
+  // 既存のsourceNodeをクリーンアップ
+  if (sourceNode) {
+    try {
+      sourceNode.disconnect();
+      console.log('[Offscreen] Previous source disconnected');
+    } catch (e) {
+      // 既に切断されている場合は無視
+    }
+  }
+
+  // 新しいaudioElementに対して新しいMediaElementSourceを作成
+  sourceNode = audioContext.createMediaElementSource(audio);
+  
+  // sourceをコンプレッサーに接続
+  sourceNode.connect(compressorNode!);
+
+  console.log('[Offscreen] Audio source connected to Web Audio API');
+}
+
+/**
+ * 音量を設定します（0.0 〜 1.0）
+ */
+function setVolume(volume: number) {
+  if (gainNode && audioContext) {
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    gainNode.gain.setValueAtTime(clampedVolume, audioContext.currentTime);
+    console.log('[Offscreen] Volume set to:', clampedVolume);
+  }
+}
 
 // メッセージハンドラー
 /**
@@ -21,6 +104,7 @@ let currentBirdInfo: any = null;
  * - `pauseAudio`
  * - `resumeAudio`
  * - `stopAudio`
+ * - `setVolume` { volume: number } - 音量設定（0.0 〜 1.0）
  * - `getAudioState` → { isPlaying: boolean, isPaused: boolean, currentTime: number, duration: number }
  *
  * 未対応メッセージは `false` を返し、他のリスナーに委譲します。
@@ -29,11 +113,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Offscreen] Received message:', message.type);
 
   switch (message.type) {
-    // 再生開始
+    // 再生開始（非同期処理なのでasync/awaitを使用）
     case 'playAudio':
-      playAudio(message.audioUrl, message.birdInfo);
-      sendResponse({ success: true });
-      break;
+      playAudio(message.audioUrl, message.birdInfo)
+        .then(() => sendResponse({ success: true }))
+        .catch((error) => {
+          console.error('[Offscreen] Play audio failed:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // 非同期レスポンスを示す
 
     // 一時停止
     case 'pauseAudio':
@@ -53,6 +141,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
 
+    // 音量設定
+    case 'setVolume':
+      setVolume(message.volume);
+      sendResponse({ success: true });
+      break;
+
     // 状態取得
     case 'getAudioState':
       const state = {
@@ -67,24 +161,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     default:
       // 未対応メッセージは無視し、background 側のリスナーに処理を委ねる
-      // ここで sendResponse を返さないことで、popup からの `getFullState` などが
-      // background 側で正しく処理されるようにする
       return false;
   }
 
-  // 同期的に sendResponse 済みなので true は不要
   return false;
 });
 
 /**
  * 指定 URL の音声を新規にロードして再生します。
- * 既存の再生中メディアがあれば停止してから差し替えます。
- * 再生状態の変化は `notifyBackground` で background に通知します。
+ * 音声データを一度ダウンロードしてBlobとして保存することで、
+ * CORS制限を回避してWeb Audio APIを使用できます。
  *
  * @param audioUrl 再生する音声ファイルの URL
  * @param birdInfo 音源に紐づく付帯情報（UI 表示等に利用）
  */
-function playAudio(audioUrl: string, birdInfo: any) {
+async function playAudio(audioUrl: string, birdInfo: any) {
   console.log('[Offscreen] Playing audio:', audioUrl);
   console.log('[Offscreen] Bird info:', birdInfo);
 
@@ -96,54 +187,60 @@ function playAudio(audioUrl: string, birdInfo: any) {
     audioElement = null;
   }
 
-  // 新しい音声要素を作成
-  audioElement = new Audio(audioUrl);
-  audioElement.volume = 0.5;
+  // 既存のBlobURLをクリーンアップ
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
+  }
 
-  // イベントリスナーを設定
-  // 音声データが読み込まれた
-  audioElement.onloadeddata = () => {
-    console.log('[Offscreen] Audio loaded, duration:', audioElement?.duration);
-  };
+  try {
+    // 音声データをダウンロード
+    const audioBlob = await downloadAudioAsBlob(audioUrl);
+    
+    // BlobからローカルURLを作成
+    currentBlobUrl = URL.createObjectURL(audioBlob);
+    console.log('[Offscreen] Created blob URL:', currentBlobUrl);
 
-  // 音声が再生された
-  audioElement.onplay = () => {
-    console.log('[Offscreen] Audio started playing');
-    notifyBackground('audioStarted');
-  };
+    // 新しい音声要素を作成（ローカルBlobURLを使用）
+    audioElement = new Audio(currentBlobUrl);
+    
+    // Web Audio API のセットアップ（音量正規化）
+    setupAudioContext(audioElement);
 
-  // 音声が終了した
-  audioElement.onended = () => {
-    console.log('[Offscreen] Audio ended');
-    notifyBackground('audioEnded');
-  };
+    // イベントリスナーを設定
+    audioElement.onloadeddata = () => {
+      console.log('[Offscreen] Audio loaded, duration:', audioElement?.duration);
+    };
 
-  // 音声エラーが発生した
-  audioElement.onerror = (e) => {
-    console.error('[Offscreen] Audio error:', e);
-    console.error('[Offscreen] Error details:', {
-      error: audioElement?.error,
-      networkState: audioElement?.networkState,
-      readyState: audioElement?.readyState
-    });
-    notifyBackground('audioError', { error: 'Playback error' });
-  };
+    audioElement.onplay = () => {
+      console.log('[Offscreen] Audio started playing');
+      notifyBackground('audioStarted');
+    };
 
-  // 音声が一時停止された
-  // audioElement.onpause = () => {
-  //   console.log('[Offscreen] Audio paused');
-  //   notifyBackground('audioPaused');
-  // };
+    audioElement.onended = () => {
+      console.log('[Offscreen] Audio ended');
+      notifyBackground('audioEnded');
+    };
 
-  // 音声を再生
-  audioElement.play()
-    .then(() => {
-      console.log('[Offscreen] Play promise resolved');
-    })
-    .catch((error) => {
-      console.error('[Offscreen] Play promise rejected:', error);
-      notifyBackground('audioError', { error: error.message });
-    });
+    audioElement.onerror = (e) => {
+      console.error('[Offscreen] Audio error:', e);
+      console.error('[Offscreen] Error details:', {
+        error: audioElement?.error,
+        networkState: audioElement?.networkState,
+        readyState: audioElement?.readyState
+      });
+      notifyBackground('audioError', { error: 'Playback error' });
+    };
+
+    // 音声を再生
+    await audioElement.play();
+    console.log('[Offscreen] Play started successfully');
+    
+  } catch (error) {
+    console.error('[Offscreen] Failed to play audio:', error);
+    notifyBackground('audioError', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw error;
+  }
 }
 
 /**
@@ -154,7 +251,6 @@ function pauseAudio() {
   if (audioElement && !audioElement.paused) {
     console.log('[Offscreen] Pausing audio');
     audioElement.pause();
-    // ユーザー/明示的な一時停止のみここで通知
     notifyBackground('audioPaused');
   } else {
     console.log('[Offscreen] No audio to pause or already paused');
@@ -171,7 +267,6 @@ function resumeAudio() {
     audioElement.play()
       .then(() => {
         console.log('[Offscreen] Resume successful');
-        // 🔥 再開イベントを通知
         notifyBackground('audioResumed');
       })
       .catch((error) => {
@@ -193,6 +288,12 @@ function stopAudio() {
     audioElement.currentTime = 0;
     audioElement = null;
     currentBirdInfo = null;
+  }
+  
+  // BlobURLをクリーンアップ
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
   }
 }
 

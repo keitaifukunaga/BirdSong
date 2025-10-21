@@ -16,11 +16,9 @@ body {
 .popup-container {
   width: 450px;
   min-height: 550px;
-  max-height: 700px;
   background: white;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
 }
 
 /* Header */

@@ -10,7 +10,9 @@ export default defineConfig({
       'offscreen'  // 🔥 追加: offscreen権限
     ],
     host_permissions: [
-      'https://search.macaulaylibrary.org/*'
+      'https://search.macaulaylibrary.org/*',
+      'https://cdn.download.ams.birds.cornell.edu/*',
+      'https://api.ebird.org/*'
     ]
   },
   dev: {
