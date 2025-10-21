@@ -12,6 +12,25 @@
  */
 import type { Bird } from '../src/typeConst';
 
+// eBird API設定
+const EBIRD_API_KEY = import.meta.env.VITE_EBIRD_API_KEY;
+const EBIRD_BASE_URL = 'https://api.ebird.org/v2';
+const MACAULAY_BASE_URL = 'https://search.macaulaylibrary.org/api/v1';
+
+/**
+ * eBirdの観測データ型定義
+ */
+interface BirdObservation {
+  speciesCode: string;
+  comName: string;
+  sciName: string;
+  locName: string;
+  obsDt: string;
+  hasRichMedia?: boolean;
+  lat: number;
+  lng: number;
+}
+
 // @ts-ignore
 export default defineBackground(() => {
   console.log('[Background] BirdSong started');
@@ -111,49 +130,210 @@ export default defineBackground(() => {
   }
 
   /**
-   * 鳥の音声を検索し、ランダムに 1 件の `Bird` を返します。
+   * eBird APIから最近の観測データを取得します。
    *
-   * @param regionCode 検索対象の地域コード（未指定時は全地域）
+   * @param regionCode 検索対象の地域コード（未指定時は東京周辺）
+   * @returns 観測データの配列
+   */
+  async function getRecentObservations(regionCode?: string): Promise<BirdObservation[]> {
+    try {
+      let url: string;
+      
+      if (regionCode) {
+        // 地域コード指定時
+        url = `${EBIRD_BASE_URL}/data/obs/${regionCode}/recent?back=7&maxResults=50`;
+      } else {
+        // 地域コード未指定時は東京周辺の観測を取得
+        url = `${EBIRD_BASE_URL}/data/obs/geo/recent?lat=35.6762&lng=139.6503&dist=50&back=7&maxResults=50`;
+      }
+
+      console.log('[Background] Fetching observations from eBird:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          'x-ebirdapitoken': EBIRD_API_KEY || ''
+        }
+      });
+
+      if (!response.ok) {
+        console.error('[Background] eBird API error:', response.status, response.statusText);
+        return [];
+      }
+
+      const observations = await response.json();
+      console.log(`[Background] Found ${observations.length} observations from eBird`);
+      
+      // メディアがある観測のみフィルタリング（hasRichMediaフィールドがある場合）
+      return observations.filter((obs: any) => 
+        obs.hasRichMedia === true || obs.hasRichMedia === undefined
+      );
+    } catch (error) {
+      console.error('[Background] Error fetching eBird observations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Macaulay LibraryからメディアURLを取得します。
+   *
+   * @param speciesCode 種コード
+   * @param regionCode 地域コード（オプション）
+   * @returns メディアデータ、または null
+   */
+  async function getMacaulayMedia(speciesCode: string, regionCode?: string): Promise<any | null> {
+    try {
+      // 音声を取得
+      const audioParams = new URLSearchParams({
+        taxonCode: speciesCode,
+        mediaType: 'audio',
+        count: '10',
+        sort: 'rating_rank_desc'
+      });
+
+      if (regionCode) {
+        audioParams.append('regionCode', regionCode);
+      }
+
+      const audioResponse = await fetch(`${MACAULAY_BASE_URL}/search?${audioParams}`);
+      const audioData = await audioResponse.json();
+
+      if (!audioData.results?.content?.length) {
+        console.log(`[Background] No audio found for ${speciesCode}`);
+        return null;
+      }
+
+      // ランダムに音声を選択
+      const audioItems = audioData.results.content;
+      const selectedAudio = audioItems[Math.floor(Math.random() * audioItems.length)];
+
+      // 画像を取得
+      const photoParams = new URLSearchParams({
+        taxonCode: speciesCode,
+        mediaType: 'photo',
+        count: '5',
+        sort: 'rating_rank_desc'
+      });
+
+      if (regionCode) {
+        photoParams.append('regionCode', regionCode);
+      }
+
+      const photoResponse = await fetch(`${MACAULAY_BASE_URL}/search?${photoParams}`);
+      const photoData = await photoResponse.json();
+
+      const photoUrl = photoData.results?.content?.[0]?.previewUrl || selectedAudio.previewUrl;
+
+      return {
+        audioUrl: selectedAudio.mediaUrl,
+        imageUrl: photoUrl,
+        recordist: selectedAudio.userDisplayName
+      };
+    } catch (error) {
+      console.error('[Background] Error fetching Macaulay media:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 鳥の音声を検索し、ランダムに 1 件の `Bird` を返します。
+   * eBird APIで最近の観測データを取得し、Macaulay Library APIで音声と画像を取得します。
+   *
+   * @param regionCode 検索対象の地域コード（未指定時は東京周辺）
    * @returns 見つかった `Bird` オブジェクト、または見つからない場合は `null`
    */
   async function searchBirdAudio(regionCode?: string): Promise<Bird | null> {
-    console.log('[Background] Searching birds, region:', regionCode || 'all');
+    console.log('[Background] Searching birds, region:', regionCode || 'Tokyo area');
     
-    const params = new URLSearchParams({
-      mediaType: 'audio',
-      count: '20',
-      sort: 'rating_rank_desc'
-    });
+    try {
+      // ステップ1: eBirdから最近の観測データを取得
+      const observations = await getRecentObservations(regionCode);
+      
+      if (!observations.length) {
+        console.log('[Background] No observations found, falling back to Macaulay Library');
+        // フォールバック: Macaulay Libraryから直接取得
+        return await searchBirdAudioFallback(regionCode);
+      }
 
-    if (regionCode) {
-      params.append('regionCode', regionCode);
+      console.log(`[Background] Trying to find media for ${observations.length} observations`);
+
+      // ステップ2: 観測データをシャッフル
+      const shuffledObs = [...observations].sort(() => Math.random() - 0.5);
+
+      // ステップ3: メディアが見つかるまで試行
+      for (const obs of shuffledObs) {
+        console.log(`[Background] Trying species: ${obs.comName} (${obs.speciesCode})`);
+        
+        const media = await getMacaulayMedia(obs.speciesCode, regionCode);
+        
+        if (media) {
+          console.log('[Background] Found bird with media:', obs.comName);
+          return {
+            commonName: obs.comName,
+            scientificName: obs.sciName,
+            speciesCode: obs.speciesCode,
+            audioUrl: media.audioUrl,
+            imageUrl: media.imageUrl,
+            recordist: media.recordist,
+            location: obs.locName,
+            observedDate: obs.obsDt
+          };
+        }
+      }
+
+      console.log('[Background] No media found for any observation, falling back');
+      return await searchBirdAudioFallback(regionCode);
+    } catch (error) {
+      console.error('[Background] Error in searchBirdAudio:', error);
+      return await searchBirdAudioFallback(regionCode);
     }
+  }
 
-    // API call to Macaulay Library
-    // https://search.macaulaylibrary.org/api/v1/search?mediaType=audio&count=20&sort=rating_rank_desc
-    const response = await fetch(`https://search.macaulaylibrary.org/api/v1/search?${params}`);
-    const data = await response.json();
+  /**
+   * フォールバック: Macaulay Libraryから直接検索
+   * eBird APIが使えない場合や、観測データにメディアがない場合に使用
+   */
+  async function searchBirdAudioFallback(regionCode?: string): Promise<Bird | null> {
+    console.log('[Background] Using Macaulay Library fallback');
+    
+    try {
+      const params = new URLSearchParams({
+        mediaType: 'audio',
+        count: '20',
+        sort: 'rating_rank_desc'
+      });
 
-    if (!data.results?.content?.length) {
-      console.log('[Background] No results found');
+      if (regionCode) {
+        params.append('regionCode', regionCode);
+      }
+
+      const response = await fetch(`${MACAULAY_BASE_URL}/search?${params}`);
+      const data = await response.json();
+
+      if (!data.results?.content?.length) {
+        console.log('[Background] No results found in fallback');
+        return null;
+      }
+
+      const items = data.results.content;
+      const randomIndex = Math.floor(Math.random() * items.length);
+      const bird = items[randomIndex];
+
+      console.log('[Background] Found bird (fallback):', bird.commonName);
+
+      return {
+        commonName: bird.commonName || 'Unknown',
+        scientificName: bird.scientificName || '',
+        speciesCode: bird.speciesCode || '',
+        audioUrl: bird.mediaUrl,
+        imageUrl: bird.previewUrl,
+        recordist: bird.userDisplayName,
+        location: bird.locationName,
+        observedDate: bird.observedDate
+      };
+    } catch (error) {
+      console.error('[Background] Error in fallback:', error);
       return null;
     }
-
-    const items = data.results.content;
-    const randomIndex = Math.floor(Math.random() * items.length);
-    const bird = items[randomIndex];
-
-    console.log('[Background] Found bird:', bird.commonName);
-
-    return {
-      commonName: bird.commonName || 'Unknown',
-      scientificName: bird.scientificName || '',
-      audioUrl: bird.mediaUrl,
-      imageUrl: bird.previewUrl,
-      recordist: bird.userDisplayName,
-      location: bird.locationName,
-      observedDate: bird.observedDate
-    };
   }
 
   /**
