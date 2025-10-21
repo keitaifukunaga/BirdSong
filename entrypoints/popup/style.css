@@ -1,0 +1,355 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.popup-container {
+  width: 450px;
+  min-height: 550px;
+  max-height: 700px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* Header */
+.popup-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.popup-header h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Content */
+.popup-content {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+/* Debug Section */
+.debug-toggle {
+  margin-bottom: 1rem;
+}
+
+.btn-debug-toggle {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.btn-debug-toggle:hover {
+  background: #e5e7eb;
+}
+
+.debug-section {
+  background: #1f2937;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.debug-info {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #10b981;
+}
+
+.debug-log {
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debug-log:hover {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* Region Section */
+.region-section {
+  margin-bottom: 1.5rem;
+}
+
+.region-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+#region-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+#region-select:hover:not(:disabled) {
+  border-color: #667eea;
+}
+
+#region-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#region-select:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.help-text {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Control Section */
+.control-section {
+  margin-bottom: 1.5rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-large {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.playback-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.playback-controls .btn {
+  width: 100%;
+}
+
+.playback-controls .btn:last-child {
+  grid-column: 1 / -1;
+}
+
+/* Bird Info */
+.bird-info {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.bird-info h2 {
+  font-size: 1.1rem;
+  color: #667eea;
+  margin-bottom: 1rem;
+}
+
+.bird-image-container {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: #f0f0f0;
+}
+
+.bird-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bird-details {
+  color: #333;
+}
+
+.bird-name {
+  font-size: 1.3rem;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.scientific-name {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.location,
+.recordist,
+.date {
+  font-size: 0.9rem;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Info Section */
+.info-section {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.info-text {
+  color: #6b7280;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.info-text-small {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Footer */
+.popup-footer {
+  background: #f9fafb;
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+.credit {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.credit a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.credit a:hover {
+  text-decoration: underline;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bird-info {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar */
+.popup-container::-webkit-scrollbar,
+.debug-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.popup-container::-webkit-scrollbar-track,
+.debug-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.popup-container::-webkit-scrollbar-thumb,
+.debug-section::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.popup-container::-webkit-scrollbar-thumb:hover,
+.debug-section::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

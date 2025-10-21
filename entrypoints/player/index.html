@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BirdSong Audio Player</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .status {
+      font-size: 1.2rem;
+      margin: 1rem 0;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+    }
+    .bird-info {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+    }
+    .bird-name {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .scientific-name {
+      font-style: italic;
+      opacity: 0.9;
+    }
+    .note {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 BirdSong Player</h1>
+    <div class="status" id="status">Initializing...</div>
+    <div class="bird-info" id="bird-info" style="display: none;">
+      <div class="bird-name" id="bird-name"></div>
+      <div class="scientific-name" id="scientific-name"></div>
+    </div>
+    <div class="note">
+      This tab is playing bird sounds.<br>
+      You can minimize this tab, but please don't close it.
+    </div>
+  </div>
+  <script src="./player.js" type="module"></script>
+</body>
+</html>
