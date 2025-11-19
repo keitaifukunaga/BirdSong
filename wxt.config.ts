@@ -6,6 +6,7 @@ export default defineConfig({
     name: 'BirdSong - Continuous Bird Sounds',
     description: 'Listen to beautiful bird songs continuously',
     version: '1.0.0',
+    default_locale: 'en',
     permissions: [
       'storage',
       'offscreen',  // 🔥 追加: offscreen権限

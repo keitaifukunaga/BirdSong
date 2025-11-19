@@ -1,0 +1,176 @@
+{
+  "appSubtitle": {
+    "message": "Continuous Bird Sounds",
+    "description": "Subtitle displayed in the header"
+  },
+  "syncingWithPlayer": {
+    "message": "⏳ Syncing with player...",
+    "description": "Message shown while syncing with the audio player"
+  },
+  "openInPopup": {
+    "message": "🔗 Open in Popup",
+    "description": "Button to open the extension in popup mode"
+  },
+  "pressPlayToStart": {
+    "message": "🎵 Press play to start listening!",
+    "description": "Message prompting user to start playback"
+  },
+  "playsWhenClosed": {
+    "message": "✅ Now plays even when popup is closed!",
+    "description": "Info message about background playback"
+  },
+  "poweredBy": {
+    "message": "Powered by",
+    "description": "Credit text in footer"
+  },
+  "error": {
+    "message": "⚠️ Error",
+    "description": "Error heading"
+  },
+  "paused": {
+    "message": "⏸️ Paused:",
+    "description": "Status text when audio is paused"
+  },
+  "nowPlaying": {
+    "message": "🎵 Now Playing:",
+    "description": "Status text when audio is playing"
+  },
+  "videoNotSupported": {
+    "message": "Your browser does not support the video tag.",
+    "description": "Fallback message for unsupported video"
+  },
+  "downloadHistoryTitle": {
+    "message": "💾 Download Playback History",
+    "description": "Title for download section"
+  },
+  "audioPlayedCount": {
+    "message": "Audio played: $COUNT$ items",
+    "description": "Count of played audio files",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "downloading": {
+    "message": "⬇️ Downloading...",
+    "description": "Download button text while downloading"
+  },
+  "downloadZip": {
+    "message": "💾 Download ZIP",
+    "description": "Download button text"
+  },
+  "downloadHelp": {
+    "message": "📌 Download played audio files as a ZIP. History will be cleared after download.",
+    "description": "Help text for download feature"
+  },
+  "noAudioToDownload": {
+    "message": "No audio files to download.",
+    "description": "Alert when there are no audio files"
+  },
+  "downloadSuccess": {
+    "message": "Downloaded $COUNT$ audio files as ZIP.",
+    "description": "Success message after download",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "downloadFailed": {
+    "message": "Download failed: $ERROR$",
+    "description": "Error message when download fails",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "Network error"
+      }
+    }
+  },
+  "downloadError": {
+    "message": "An error occurred during download.",
+    "description": "Generic download error message"
+  },
+  "mediaImage": {
+    "message": "Image",
+    "description": "Image media type option"
+  },
+  "mediaToggle": {
+    "message": "Toggle",
+    "description": "Aria label for media toggle button"
+  },
+  "mediaVideo": {
+    "message": "Video",
+    "description": "Video media type option"
+  },
+  "autoResumeOption": {
+    "message": "Auto-resume playback on browser startup",
+    "description": "Auto-resume checkbox label"
+  },
+  "loading": {
+    "message": "⏳ Loading...",
+    "description": "Loading button text"
+  },
+  "startPlayback": {
+    "message": "▶️ Start Playback",
+    "description": "Start playback button text"
+  },
+  "pause": {
+    "message": "⏸️ Pause",
+    "description": "Pause button text"
+  },
+  "resume": {
+    "message": "▶️ Resume",
+    "description": "Resume button text"
+  },
+  "skip": {
+    "message": "⏭️ Skip",
+    "description": "Skip button text"
+  },
+  "stop": {
+    "message": "⏹️ Stop",
+    "description": "Stop button text"
+  },
+  "selectRegion": {
+    "message": "Select a region",
+    "description": "Region selector label"
+  },
+  "nextInSeconds": {
+    "message": "Next in $SECONDS$s",
+    "description": "Countdown text for next bird",
+    "placeholders": {
+      "seconds": {
+        "content": "$1",
+        "example": "45"
+      }
+    }
+  },
+  "regionAll": {
+    "message": "All Regions",
+    "description": "Option for all regions"
+  },
+  "errorNoObservations": {
+    "message": "Could not retrieve observation data from eBird. Please change the region or try again later.",
+    "description": "Error when no observations found"
+  },
+  "errorNoSmallBirds": {
+    "message": "No observations found for birds ≤30cm. Please change the region or try again later.",
+    "description": "Error when no small birds found"
+  },
+  "errorNoAudio": {
+    "message": "No audio data found. Please try again later.",
+    "description": "Error when no audio found"
+  },
+  "errorGeneric": {
+    "message": "An error occurred: $ERROR$",
+    "description": "Generic error message",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "Network error"
+      }
+    }
+  }
+}

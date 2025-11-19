@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { i18n } from '../../util/commonfunc';
 
 /**
- * 再生履歴ダウンロードセクション  
+ * 再生履歴ダウンロードセクション
  * 再生した音声をまとめてZIPファイルとしてダウンロードします。ダウンロード後、履歴はクリアされます。
  */
 export default function DownloadSection() {
@@ -46,7 +47,7 @@ export default function DownloadSection() {
   // 💾 音声履歴をダウンロード
   const handleDownload = async () => {
     if (audioHistoryCount === 0) {
-      alert('ダウンロードする音声がありません。');
+      alert(i18n('noAudioToDownload'));
       return;
     }
 
@@ -54,32 +55,32 @@ export default function DownloadSection() {
     try {
       const response = await chrome.runtime.sendMessage({ type: 'downloadAudioHistory' });
       if (response.success) {
-        alert(`${audioHistoryCount}件の音声をZIPファイルとしてダウンロードしました。`);
+        alert(i18n('downloadSuccess', audioHistoryCount.toString()));
         setAudioHistoryCount(0);
       } else {
-        alert(`ダウンロードに失敗しました：${response.error}`);
+        alert(i18n('downloadFailed', response.error));
       }
     } catch (error) {
       console.error('[DownloadSection] Download error:', error);
-      alert('ダウンロード中にエラーが発生しました。');
+      alert(i18n('downloadError'));
     } finally {
       setDownloading(false);
     }
   };
   return (
     <section className="download-section" style={{ marginTop: '20px' }}>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
         padding: '15px',
         backgroundColor: '#f5f5f5',
         borderRadius: '8px'
       }}>
         <div>
-          <strong>💾 再生履歴ダウンロード</strong>
+          <strong>{i18n('downloadHistoryTitle')}</strong>
           <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#666' }}>
-            再生した音声: {audioHistoryCount}件
+            {i18n('audioPlayedCount', audioHistoryCount.toString())}
           </p>
         </div>
         <button
@@ -88,11 +89,11 @@ export default function DownloadSection() {
           disabled={downloading || audioHistoryCount === 0}
           style={{ minWidth: '120px' }}
         >
-          {downloading ? '⬇️ ダウンロード中...' : '💾 ZIPダウンロード'}
+          {downloading ? i18n('downloading') : i18n('downloadZip')}
         </button>
       </div>
       <p className="help-text" style={{ marginTop: '8px', fontSize: '11px' }}>
-        📌 再生した音声をまとめてZIPファイルとしてダウンロードします。ダウンロード後、履歴はクリアされます。
+        {i18n('downloadHelp')}
       </p>
     </section>
   );

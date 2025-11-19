@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { i18n } from '../../util/commonfunc';
 
 interface WaitingStatusProps {
   // props は不要になりました
@@ -108,13 +109,13 @@ export default function WaitingStatus({}: WaitingStatusProps) {
     >
       <span style={{ fontSize: '0.75rem' }}>ℹ️</span>
       {isWaiting && (
-        <span style={{ 
+        <span style={{
           fontSize: '0.65rem',
           fontWeight: '400',
           whiteSpace: 'nowrap',
           lineHeight: '1.2'
         }}>
-          Next in {Math.ceil(waitingRemainingTime / 1000)}s
+          {i18n('nextInSeconds', Math.ceil(waitingRemainingTime / 1000).toString())}
         </span>
       )}
     </div>

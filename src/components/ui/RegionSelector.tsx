@@ -1,4 +1,5 @@
 import { REGIONS } from '../../typeConst';
+import { i18n } from '../../util/commonfunc';
 
 interface RegionSelectorProps {
   region: string;
@@ -11,7 +12,7 @@ export default function RegionSelector({ region, onChange, disabled }: RegionSel
     <div className="region-section">
       <div className="flex items-center gap-2">
         <label htmlFor="region-select" className="text-sm font-semibold whitespace-nowrap">
-          Select a region
+          {i18n('selectRegion')}
         </label>
         <select
           id="region-select"
@@ -22,7 +23,7 @@ export default function RegionSelector({ region, onChange, disabled }: RegionSel
         >
           {REGIONS.map((r) => (
             <option key={r.code} value={r.code}>
-              {r.name}
+              {r.code === '' ? i18n('regionAll') : r.name}
             </option>
           ))}
         </select>

@@ -18,7 +18,7 @@ import WaitingStatus from './ui/WaitingStatus';
 import OptionsSection from './ui/OptionsSection';
 import { useMessageListener } from './ui/useMessageListener';
 import { useOffscreenSync } from './ui/useOffscreenSync';
-import { getRegionCode } from '../util/commonfunc';
+import { getRegionCode, i18n } from '../util/commonfunc';
 
 interface BirdSongAppProps {
   onOpenInNewWindow?: () => void;
@@ -93,12 +93,12 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
       <div className="popup-container">
         <header className="popup-header">
           <h1>🎵 BirdSong</h1>
-          <p className="subtitle">Continuous Bird Sounds</p>
+          <p className="subtitle">{i18n('appSubtitle')}</p>
         </header>
         <main className="popup-content">
           <div className="info-section" style={{ padding: '40px 20px' }}>
             <p className="info-text">
-              ⏳ Syncing with player...
+              {i18n('syncingWithPlayer')}
             </p>
           </div>
         </main>
@@ -114,14 +114,14 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
       <header className="popup-header" style={{ position: 'relative' }}>
         <WaitingStatus />
         <h1>🎵 BirdSong</h1>
-        <p className="subtitle">Continuous Bird Sounds</p>
+        <p className="subtitle">{i18n('appSubtitle')}</p>
         {onOpenInNewWindow && (
           <button
             className="btn btn-secondary btn-small"
             onClick={onOpenInNewWindow}
             style={{ marginTop: '10px' }}
           >
-            🔗 ポップアップで開く
+            {i18n('openInPopup')}
           </button>
         )}
       </header>
@@ -168,10 +168,10 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
         {!isPlaying && (
           <section className="info-section">
             <p className="info-text">
-              🎵 Press play to start listening!
+              {i18n('pressPlayToStart')}
             </p>
             <p className="info-text-small">
-              ✅ Now plays even when popup is closed!
+              {i18n('playsWhenClosed')}
             </p>
           </section>
         )}
@@ -180,7 +180,7 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
       {/* フッター */}
       <footer className="popup-footer">
         <p className="credit">
-          Powered by <a href="https://www.macaulaylibrary.org/" target="_blank">Macaulay Library</a>
+          {i18n('poweredBy')} <a href="https://www.macaulaylibrary.org/" target="_blank">Macaulay Library</a>
         </p>
       </footer>
     </div>
