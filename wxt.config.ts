@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt';
+import path from 'path';
 
 export default defineConfig({
   manifest: {
@@ -7,7 +8,8 @@ export default defineConfig({
     version: '1.0.0',
     permissions: [
       'storage',
-      'offscreen'  // 🔥 追加: offscreen権限
+      'offscreen',  // 🔥 追加: offscreen権限
+      'downloads'   // 💾 ダウンロード権限
     ],
     host_permissions: [
       'https://search.macaulaylibrary.org/*',
@@ -15,10 +17,17 @@ export default defineConfig({
       'https://api.ebird.org/*'
     ]
   },
+  vite: () => ({
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
+  }),
   dev: {
     server: {
-      host: '0.0.0.0',
-      port: 3001
+      // hostname: '0.0.0.0',
+      port: 3100
     }
   }
 });

@@ -1,249 +1,92 @@
+/**
+ * BirdSongApp - メインのアプリケーションコンポーネント
+ * 
+ * 鳥の鳴き声を連続再生するChrome拡張機能のポップアップUIを提供します。
+ * - 地域選択による鳥の検索
+ * - 再生/一時停止/停止の制御
+ * - 現在再生中の鳥の情報表示
+ * - オフスクリーンドキュメント（背景プレイヤー）との状態同期
+ * - ポップアップを閉じても再生が継続する機能
+ */
 import { useState, useEffect } from 'react';
 import type { Bird } from '../typeConst';
-
-const REGIONS = [
-  { code: '', name: 'All Regions' },
-  { code: 'US', name: 'United States' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'NZ', name: 'New Zealand' },
-  { code: 'JP', name: 'Japan' },
-];
+import PlaybackControls from './ui/PlaybackControls';
+import BirdInfo from './ui/BirdInfo';
+import RegionSelector from './ui/RegionSelector';
+import DownloadSection from './ui/DownloadSection';
+import WaitingStatus from './ui/WaitingStatus';
+import OptionsSection from './ui/OptionsSection';
+import { useMessageListener } from './ui/useMessageListener';
+import { useOffscreenSync } from './ui/useOffscreenSync';
+import { getRegionCode } from '../util/commonfunc';
 
 interface BirdSongAppProps {
   onOpenInNewWindow?: () => void;
 }
 
 export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
+  // 選択された地域（空文字列の場合は全地域）
   const [region, setRegion] = useState('');
+    // 再生中かどうかの状態
   const [isPlaying, setIsPlaying] = useState(false);
+  // 一時停止中かどうかの状態
   const [isPaused, setIsPaused] = useState(false);
-  const [isWaiting, setIsWaiting] = useState(false);
-  const [waitingRemainingTime, setWaitingRemainingTime] = useState(0);
+  // 現在再生中の鳥の情報
   const [currentBird, setCurrentBird] = useState<Bird | null>(null);
+  // ローディング状態（鳥のデータ取得中など）
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(true);
-  const [autoResume, setAutoResume] = useState(true);
 
   // 🔥 Offscreenの状態を同期
-  const syncWithOffscreen = async () => {
-    console.log('[BirdSongApp] Syncing with offscreen...');
-    setSyncing(true);
-    
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'getFullState' });
-      console.log('[BirdSongApp] Full state received:', response);
-      
-      if (response.isPlaying) {
-        setIsPlaying(true);
-        setIsPaused(response.isPaused || false);
-        setIsWaiting(response.isWaiting || false);
-        setWaitingRemainingTime(response.waitingRemainingTime || 0);
-        setCurrentBird(response.currentBird);
-        setRegion(response.region || '');
-        
-        console.log('[BirdSongApp] State synced:', {
-          isPlaying: true,
-          isPaused: response.isPaused,
-          isWaiting: response.isWaiting,
-          waitingRemainingTime: response.waitingRemainingTime,
-          bird: response.currentBird?.commonName
-        });
-      } else {
-        // 再生していない場合は初期状態
-        setIsPlaying(false);
-        setIsPaused(false);
-        setIsWaiting(false);
-        setWaitingRemainingTime(0);
-        setCurrentBird(null);
-      }
-    } catch (error) {
-      console.error('[BirdSongApp] Failed to sync state:', error);
-    } finally {
-      setSyncing(false);
-    }
-  };
+  const { syncing, syncWithOffscreen } = useOffscreenSync({
+    setIsPlaying,
+    setIsPaused,
+    setCurrentBird,
+    setRegion
+  });
 
   // Backgroundからのイベントを受信
-  useEffect(() => {
-    const messageListener = (msg: any) => {
-      console.log('[BirdSongApp] Received message:', msg.type, msg);
-
-      if (msg.type === 'popupEvent') {
-        if (msg.event === 'birdChanged') {
-          console.log('[BirdSongApp] Bird changed:', msg.data);
-          setCurrentBird(msg.data);
-          // 再生中のイベントなので isPlaying を true に保つ
-          setIsPlaying(true);
-          setLoading(false);
-        } else if (msg.event === 'audioStarted') {
-          console.log('[BirdSongApp] Audio started');
-          setIsPlaying(true);
-          setIsPaused(false);
-          setLoading(false);
-        } else if (msg.event === 'audioPaused') {
-          console.log('[BirdSongApp] Audio paused');
-          // 一時停止してもセッションは継続中なので isPlaying は true のまま
-          setIsPlaying(true);
-          setIsPaused(true);
-        } else if (msg.event === 'audioResumed') {
-          console.log('[BirdSongApp] Audio resumed');
-          setIsPlaying(true);
-          setIsPaused(false);
-        } else if (msg.event === 'waitingStarted') {
-          console.log('[BirdSongApp] Waiting started');
-          setIsWaiting(true);
-          setWaitingRemainingTime(60000); // 60秒から開始
-        } else if (msg.event === 'waitingCancelled') {
-          console.log('[BirdSongApp] Waiting cancelled');
-          setIsWaiting(false);
-          setWaitingRemainingTime(0);
-        }
-      }
-    };
-
-    chrome.runtime.onMessage.addListener(messageListener);
-
-    return () => {
-      chrome.runtime.onMessage.removeListener(messageListener);
-    };
-  }, []);
-
-  // カウントダウン用のuseEffect
-  useEffect(() => {
-    if (!isWaiting || waitingRemainingTime <= 0) {
-      return;
-    }
-
-    const interval = setInterval(async () => {
-      // バックグラウンドから最新の残り時間を取得
-      try {
-        const response = await chrome.runtime.sendMessage({ type: 'getFullState' });
-        if (response.waitingRemainingTime !== undefined) {
-          setWaitingRemainingTime(response.waitingRemainingTime);
-          
-          // 待機が終了した場合
-          if (response.waitingRemainingTime <= 0) {
-            setIsWaiting(false);
-          }
-        }
-      } catch (error) {
-        console.error('[BirdSongApp] Failed to get remaining time:', error);
-        // エラーの場合は手動でカウントダウン
-        setWaitingRemainingTime(prev => {
-          const newTime = prev - 1000;
-          if (newTime <= 0) {
-            setIsWaiting(false);
-            return 0;
-          }
-          return newTime;
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isWaiting, waitingRemainingTime]);
-
-  // 次の鳥を再生
-  const playNext = async () => {
-    setLoading(true);
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'next',
-        region
-      });
-      if (response.bird) {
-        setCurrentBird(response.bird);
-      }
-    } catch (error) {
-      console.error('[BirdSongApp] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 再生開始
-  const handleStart = async () => {
-    setLoading(true);
-    try {
-      await chrome.storage.sync.set({ region });
-      
-      const response = await chrome.runtime.sendMessage({
-        type: 'start',
-        region
-      });
-
-      if (response.success && response.bird) {
-        setIsPlaying(true);
-        setIsPaused(false);
-        setCurrentBird(response.bird);
-      }
-    } catch (error) {
-      console.error('[BirdSongApp] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 一時停止
-  const handlePause = async () => {
-    try {
-      await chrome.runtime.sendMessage({ type: 'pause' });
-      setIsPaused(true);
-    } catch (error) {
-      console.error('[BirdSongApp] Pause error:', error);
-    }
-  };
-
-  // 再開
-  const handleResume = async () => {
-    try {
-      await chrome.runtime.sendMessage({ type: 'resume' });
-      setIsPaused(false);
-    } catch (error) {
-      console.error('[BirdSongApp] Resume error:', error);
-    }
-  };
-
-  // 停止
-  const handleStop = async () => {
-    setIsPlaying(false);
-    setIsPaused(false);
-    setCurrentBird(null);
-
-    try {
-      await chrome.runtime.sendMessage({ type: 'stop' });
-    } catch (error) {
-      console.error('[BirdSongApp] Stop error:', error);
-    }
-  };
-
-  // オプション設定の保存
-  const saveAutoResumeSetting = async (value: boolean) => {
-    try {
-      await chrome.storage.sync.set({ autoResume: value });
-      setAutoResume(value);
-    } catch (error) {
-      console.error('[BirdSongApp] Failed to save autoResume setting:', error);
-    }
-  };
+  useMessageListener({
+    setCurrentBird,
+    setIsPlaying,
+    setIsPaused,
+    setLoading
+  });
 
   // 🔥 初期化: Offscreenと同期
   useEffect(() => {
     const loadSettings = async () => {
       // まず設定を読み込む
-      const settings = await chrome.storage.sync.get(['region', 'autoResume']);
-      setRegion(settings.region || '');
-      setAutoResume(settings.autoResume !== false); // デフォルトはtrue
+      const settings = await chrome.storage.sync.get(['region']);
+      // 設定が存在しない場合（初回取得）、ブラウザの言語設定からリージョンを取得
+      if (!settings.region) {
+        const regionCode = getRegionCode();
+        if (regionCode) {
+          // リージョンを設定して保存
+          await chrome.storage.sync.set({ region: regionCode });
+          setRegion(regionCode);
+        } else {
+          setRegion('');
+        }
+      } else {
+        setRegion(settings.region);
+      }
 
       // 🔥 Offscreenの状態と同期
       await syncWithOffscreen();
     };
     
     loadSettings();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // syncWithOffscreen と updateAudioHistoryCount は useCallback でメモ化されているため、依存配列に追加不要
 
+  const SyncStyle = {
+    fontSize: '10px',
+    color: '#666',
+    textAlign: 'center',
+    marginTop: '-8px',
+    marginBottom: '8px'
+  } as React.CSSProperties;
+  
   // ローディング中の表示
   if (syncing) {
     return (
@@ -267,7 +110,9 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
 
   return (
     <div className="popup-container">
-      <header className="popup-header">
+      {/* ヘッダー */}
+      <header className="popup-header" style={{ position: 'relative' }}>
+        <WaitingStatus />
         <h1>🎵 BirdSong</h1>
         <p className="subtitle">Continuous Bird Sounds</p>
         {onOpenInNewWindow && (
@@ -281,155 +126,43 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
         )}
       </header>
 
+      {/* メインコンテンツ */}
       <main className="popup-content">
         {/* 地域選択 */}
-        <section className="region-section">
-          <label htmlFor="region-select">
-            <strong>Birding Region:</strong>
-          </label>
-          <select
-            id="region-select"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            disabled={isPlaying}
-          >
-            {REGIONS.map((r) => (
-              <option key={r.code} value={r.code}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-          <p className="help-text">
-            {isPlaying ? 'Stop to change region' : 'Select a region'}
-          </p>
-        </section>
+        <RegionSelector
+          region={region}
+          onChange={setRegion}
+          disabled={isPlaying}
+        />
 
         {/* オプション設定 */}
-        <section className="options-section">
-          <div className="option-item">
-            <label htmlFor="auto-resume-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input
-                id="auto-resume-checkbox"
-                type="checkbox"
-                checked={autoResume}
-                onChange={(e) => saveAutoResumeSetting(e.target.checked)}
-              />
-              <span><strong>Auto-resume playback on browser startup</strong></span>
-            </label>
-            <p className="help-text" style={{ marginLeft: '24px', fontSize: '12px', color: '#666' }}>
-              Automatically resume playback when browser starts (if was playing before)
-            </p>
-          </div>
-        </section>
+        <OptionsSection />
 
         {/* コントロール */}
-        <section className="control-section">
-          {!isPlaying ? (
-            <button
-              className="btn btn-primary btn-large"
-              onClick={handleStart}
-              disabled={loading}
-            >
-              {loading ? '⏳ Loading...' : '▶️ Start Playback'}
-            </button>
-          ) : (
-            <div className="playback-controls">
-              {!isPaused ? (
-                <button
-                  className="btn btn-warning"
-                  onClick={handlePause}
-                  disabled={loading}
-                >
-                  ⏸️ Pause
-                </button>
-              ) : (
-                <button
-                  className="btn btn-success"
-                  onClick={handleResume}
-                  disabled={loading}
-                >
-                  ▶️ Resume
-                </button>
-              )}
-              <button
-                className="btn btn-secondary"
-                onClick={playNext}
-                disabled={loading || isPaused || isWaiting}
-              >
-                ⏭️ Skip
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={handleStop}
-                disabled={loading}
-              >
-                ⏹️ Stop
-              </button>
-            </div>
-          )}
-        </section>
+        <PlaybackControls
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          loading={loading}
+          region={region}
+          setLoading={setLoading}
+          setIsPlaying={setIsPlaying}
+          setIsPaused={setIsPaused}
+          setCurrentBird={setCurrentBird}
+        />
+
+        {/* 💾 ダウンロードセクション */}
+        {/* <DownloadSection /> */}
 
         {/* 🔥 同期状態の表示 */}
-        {isPlaying && (
-          <div style={{ 
-            fontSize: '10px', 
-            color: '#666', 
-            textAlign: 'center', 
-            marginTop: '-8px',
-            marginBottom: '8px'
-          }}>
+        {/* {isPlaying && (
+          <div style={SyncStyle}>
             🔄 Synced with background player
           </div>
-        )}
-
-        {/* 待機状態の表示 */}
-        {isWaiting && (
-          <section className="waiting-info">
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '20px',
-              backgroundColor: '#f0f8ff',
-              borderRadius: '8px',
-              margin: '10px 0'
-            }}>
-              <h2 style={{ color: '#0066cc', margin: '0 0 10px 0' }}>⏳ Waiting...</h2>
-              <p style={{ margin: '0', color: '#666' }}>
-                Next bird will start in {Math.ceil(waitingRemainingTime / 1000)} seconds
-              </p>
-            </div>
-          </section>
-        )}
+        )} */}
 
         {/* 鳥情報 */}
-        {isPlaying && currentBird && !isWaiting && (
-          <section className="bird-info">
-            <h2>{isPaused ? '⏸️ Paused:' : '🎵 Now Playing:'}</h2>
-            
-            {currentBird.imageUrl && (
-              <div className="bird-image-container">
-                <img
-                  src={currentBird.imageUrl}
-                  alt={currentBird.commonName}
-                  className="bird-image"
-                />
-              </div>
-            )}
-
-            <div className="bird-details">
-              <h3 className="bird-name">{currentBird.commonName}</h3>
-              <p className="scientific-name">
-                <em>{currentBird.scientificName}</em>
-              </p>
-
-              {currentBird.location && (
-                <p className="location">📍 {currentBird.location}</p>
-              )}
-
-              {currentBird.recordist && (
-                <p className="recordist">🎤 {currentBird.recordist}</p>
-              )}
-            </div>
-          </section>
+        {currentBird && (
+          <BirdInfo bird={currentBird} isPaused={isPaused} isPlaying={isPlaying} />
         )}
 
         {!isPlaying && (
@@ -444,6 +177,7 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
         )}
       </main>
 
+      {/* フッター */}
       <footer className="popup-footer">
         <p className="credit">
           Powered by <a href="https://www.macaulaylibrary.org/" target="_blank">Macaulay Library</a>

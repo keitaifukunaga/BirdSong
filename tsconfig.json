@@ -9,8 +9,11 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
-    "types": ["@types/chrome"]
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["entrypoints/**/*", "components/**/*", "utils/**/*"],
+  "include": ["entrypoints/**/*", "src/**/*", "wxt.config.ts", "wxt.d.ts"],
   "exclude": ["node_modules", ".wxt"]
 }
