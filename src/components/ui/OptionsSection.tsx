@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { i18n } from '../../util/commonfunc';
 
 export default function OptionsSection() {
   const [autoResume, setAutoResume] = useState(true);
@@ -37,7 +38,7 @@ export default function OptionsSection() {
             checked={autoResume}
             onChange={(e) => saveAutoResumeSetting(e.target.checked)}
           />
-          <span><strong>Auto-resume playback on browser startup</strong></span>
+          <span><strong>{i18n('autoResumeOption')}</strong></span>
         </label>
       </div>
     </section>

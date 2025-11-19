@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Bird } from '../../typeConst';
+import { i18n } from '../../util/commonfunc';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -143,7 +144,7 @@ export default function PlaybackControls({
           onClick={handleStart}
           disabled={loading}
         >
-          {loading ? '⏳ Loading...' : '▶️ Start Playback'}
+          {loading ? i18n('loading') : i18n('startPlayback')}
         </button>
       ) : (
         <div className="playback-controls">
@@ -153,7 +154,7 @@ export default function PlaybackControls({
               onClick={handlePause}
               disabled={loading}
             >
-              ⏸️ Pause
+              {i18n('pause')}
             </button>
           ) : (
             <button
@@ -161,7 +162,7 @@ export default function PlaybackControls({
               onClick={handleResume}
               disabled={loading}
             >
-              ▶️ Resume
+              {i18n('resume')}
             </button>
           )}
           <button
@@ -169,14 +170,14 @@ export default function PlaybackControls({
             onClick={playNext}
             disabled={loading || isPaused || isWaiting}
           >
-            ⏭️ Skip
+            {i18n('skip')}
           </button>
           <button
             className="btn btn-danger"
             onClick={handleStop}
             disabled={loading}
           >
-            ⏹️ Stop
+            {i18n('stop')}
           </button>
         </div>
       )}

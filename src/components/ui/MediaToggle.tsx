@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "../../lib/utils"
+import { i18n } from "../../util/commonfunc"
 
 type MediaType = "image" | "video"
 
@@ -45,12 +46,12 @@ export function MediaToggle({ value, onChange, className }: MediaToggleProps) {
             : "bg-blue-50 text-blue-600 hover:bg-blue-100"
         )}
       >
-        画像
+        {i18n('mediaImage')}
       </button>
       <button
         onClick={toggleValue}
         className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-100 transition-colors cursor-pointer hover:bg-blue-200"
-        aria-label="切り替え"
+        aria-label={i18n('mediaToggle')}
       >
         <div
           className={cn(
@@ -68,7 +69,7 @@ export function MediaToggle({ value, onChange, className }: MediaToggleProps) {
             : "bg-blue-50 text-blue-600 hover:bg-blue-100"
         )}
       >
-        動画
+        {i18n('mediaVideo')}
       </button>
     </div>
   )

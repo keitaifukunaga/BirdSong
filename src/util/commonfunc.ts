@@ -73,3 +73,11 @@ export function getEBirdLocale(): string {
     const parts = lang.split('-');
     return parts[0].toLowerCase(); // ハイフン以下を削除して言語コードのみを返す
 }
+
+/**
+ * i18n wrapper function for chrome.i18n.getMessage
+ * Wrapper function for future multi-browser support
+ */
+export function i18n(key: string, substitutions?: string | string[]): string {
+    return chrome.i18n.getMessage(key, substitutions);
+}

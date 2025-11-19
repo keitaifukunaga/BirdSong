@@ -1,5 +1,5 @@
 import type { Bird, BirdObservation } from '../typeConst';
-import { weightedRandomSelect } from './commonfunc';
+import { weightedRandomSelect, i18n } from './commonfunc';
 import { loadAVONETData } from './api_avonet';
 import { loadEBirdTaxonomy } from './api_taxonomy';
 import { EBIRD_BASE_URL, EBIRD_API_KEY, MACAULAY_BASE_URL } from '../typeConst';
@@ -204,16 +204,16 @@ export async function searchBirdAudio(regionCode?: string): Promise<Bird | null>
     scientificName: '',
     speciesCode: '',
     audioUrl: '',
-    message: 'eBirdから観測データを取得できませんでした。地域を変更するか、しばらく時間をおいて再度お試しください。'
+    message: i18n('errorNoObservations')
   };
-  
+
   try {
     // ステップ1: eBirdから最近の観測データを取得（サイズフィルタリング済み）
     const observations = await getRecentObservations(regionCode);
-    
+
     if (!observations.length) {
       console.log('[API] No observations found for small birds (≤30cm)');
-      return {...notFoundObj, message: '体長30cm以下の鳥の観測データが見つかりませんでした。地域を変更するか、しばらく時間をおいて再度お試しください。'};
+      return {...notFoundObj, message: i18n('errorNoSmallBirds')};
     }
 
     // eBird taxonomy データを読み込み（commonName変換用）
@@ -249,9 +249,9 @@ export async function searchBirdAudio(regionCode?: string): Promise<Bird | null>
     }
 
     console.log('[API] No media found for any observation');
-    return {...notFoundObj, message: '音声データが見つかりませんでした。しばらく時間をおいて再度お試しください。'};
+    return {...notFoundObj, message: i18n('errorNoAudio')};
   } catch (error) {
     console.error('[API] Error in searchBirdAudio:', error);
-    return {...notFoundObj , message: `エラーが発生しました: ${error instanceof Error ? error.message : 'Unknown error'}`} as Bird;
+    return {...notFoundObj , message: i18n('errorGeneric', error instanceof Error ? error.message : 'Unknown error')} as Bird;
   }
 }

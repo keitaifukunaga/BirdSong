@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Bird } from '../../typeConst';
 import { MediaToggle } from './MediaToggle';
+import { i18n } from '../../util/commonfunc';
 
 interface BirdInfoProps {
   bird: Bird | null;
@@ -84,7 +85,7 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
     return (
       <section className="bird-info">
         <div className="bird-details" style={{ padding: '20px', textAlign: 'center' }}>
-          <h3 style={{ color: '#d32f2f', marginBottom: '10px' }}>⚠️ エラー</h3>
+          <h3 style={{ color: '#d32f2f', marginBottom: '10px' }}>{i18n('error')}</h3>
           <p style={{ color: '#666', lineHeight: '1.6' }}>{bird.message}</p>
         </div>
       </section>
@@ -99,7 +100,7 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
   return (
     <section className="bird-info">
       <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-1 justify-between">
-        <span>{isPaused ? '⏸️ Paused:' : '🎵 Now Playing:'}</span>
+        <span>{isPaused ? i18n('paused') : i18n('nowPlaying')}</span>
         {/* 画像/動画切り替えスイッチ */}
         {canToggle && (
           <MediaToggle
@@ -125,7 +126,7 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
                 className="bird-image"
                 style={{ width: '100%', maxWidth: '400px', height: 'auto' }}
               >
-                Your browser does not support the video tag.
+                {i18n('videoNotSupported')}
               </video>
             ) : hasImage ? (
               <img
