@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Bird } from '../../typeConst';
-import { MediaToggle } from './MediaToggle';
 import { i18n } from '../../util/commonfunc';
 
 interface BirdInfoProps {
@@ -14,6 +13,20 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
   const [showVideo, setShowVideo] = useState(false);
   const previousBirdRef = useRef<Bird | null>(null);
 
+  // 動画再生終了時のハンドラ
+  const handleVideoEnded = useCallback(() => {
+    console.log('[BirdInfo] Video ended, switching to image');
+    setShowVideo(false);
+  }, []);
+
+  // 画像クリック時のハンドラ
+  const handleImageClick = useCallback(() => {
+    if (bird?.videoUrl) {
+      console.log('[BirdInfo] Image clicked, switching to video');
+      setShowVideo(true);
+    }
+  }, [bird?.videoUrl]);
+
   // 初期状態を取得
   const syncState = useCallback(async () => {
     try {
@@ -26,25 +39,14 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
     }
   }, []);
 
-  // birdが変わったタイミングでランダムに画像か動画かを選択
+  // birdが変わったタイミングで動画がある場合は動画を表示
   useEffect(() => {
     if (bird && bird !== previousBirdRef.current) {
       previousBirdRef.current = bird;
-      
-      // 画像と動画の両方が利用可能かチェック
-      const hasImage = !!bird.imageUrl;
+
+      // 動画が利用可能な場合は動画を表示、そうでなければ画像を表示
       const hasVideo = !!bird.videoUrl;
-      
-      if (hasImage && hasVideo) {
-        // 両方ある場合はランダムに選択
-        setShowVideo(Math.random() < 0.5);
-      } else if (hasVideo) {
-        // 動画のみの場合は動画を表示
-        setShowVideo(true);
-      } else {
-        // 画像のみ、またはどちらもない場合は画像を表示
-        setShowVideo(false);
-      }
+      setShowVideo(hasVideo);
     }
   }, [bird]);
 
@@ -92,50 +94,50 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
     );
   }
 
-  // 画像と動画の両方が利用可能かチェック
+  // 画像と動画が利用可能かチェック
   const hasImage = !!bird.imageUrl;
   const hasVideo = !!bird.videoUrl;
-  const canToggle = hasImage && hasVideo;
 
   return (
     <section className="bird-info">
       <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-1 justify-between">
         <span>{isPaused ? i18n('paused') : i18n('nowPlaying')}</span>
-        {/* 画像/動画切り替えスイッチ */}
-        {canToggle && (
-          <MediaToggle
-            value={showVideo ? "video" : "image"}
-            onChange={(value) => setShowVideo(value === "video")}
-          />
-        )}
+        {/* eBirdへのリンク */}
+        <a
+          href={`https://ebird.org/species/${bird.speciesCode}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-primary hover:opacity-80 transition-opacity"
+          title="View on eBird"
+        >
+          <span className="text-xl">🐦</span>
+          <span className="text-xs">eBird</span>
+        </a>
       </div>
-      
+
       {/* 画像または動画の表示 */}
       {(hasImage || hasVideo) && (
         <div className="bird-image-container">
-          <a
-            href={`https://ebird.org/species/${bird.speciesCode}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bird-image-link"
-          >
-            {showVideo && hasVideo ? (
-              <video
-                src={bird.videoUrl}
-                controls
-                className="bird-image"
-                style={{ width: '100%', maxWidth: '400px', height: 'auto' }}
-              >
-                {i18n('videoNotSupported')}
-              </video>
-            ) : hasImage ? (
-              <img
-                src={bird.imageUrl}
-                alt={bird.commonName}
-                className="bird-image"
-              />
-            ) : null}
-          </a>
+          {showVideo && hasVideo ? (
+            <video
+              src={bird.videoUrl}
+              muted
+              autoPlay
+              className="bird-image"
+              style={{ width: '100%', maxWidth: '400px', height: 'auto' }}
+              onEnded={handleVideoEnded}
+            >
+              {i18n('videoNotSupported')}
+            </video>
+          ) : hasImage ? (
+            <img
+              src={bird.imageUrl}
+              alt={bird.commonName}
+              className="bird-image"
+              onClick={handleImageClick}
+              style={{ cursor: hasVideo ? 'pointer' : 'default' }}
+            />
+          ) : null}
         </div>
       )}
 
