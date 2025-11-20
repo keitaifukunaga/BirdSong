@@ -138,12 +138,6 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
               style={{ cursor: hasVideo ? 'pointer' : 'default' }}
             />
           ) : null}
-          {/* メディアのクレジット表記 */}
-          {bird.recordist && (
-            <p className="text-xs text-gray-500 mt-1 mb-0 text-center">
-              {i18n('mediaCredit', bird.recordist)}
-            </p>
-          )}
         </div>
       )}
 
@@ -157,6 +151,10 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
 
         {bird.location && (
           <p className="location">📍 {bird.location}</p>
+        )}
+
+        {bird.recordist && (
+          <p className="recordist">🎤 {bird.recordist}</p>
         )}
       </div>
     </section>

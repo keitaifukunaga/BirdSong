@@ -188,7 +188,11 @@
     }
   },
   "dataSourceEbird": {
-    "message": "データ提供: eBird.org",
+    "message": "eBird",
     "description": "Credit text for eBird data source"
+  },
+  "dataSourceMacaulayLibrary": {
+    "message": "Macaulay Library",
+    "description": "Credit text for Macaulay Library data source"
   }
 }
