@@ -19,6 +19,8 @@ import OptionsSection from './ui/OptionsSection';
 import { useMessageListener } from './ui/useMessageListener';
 import { useOffscreenSync } from './ui/useOffscreenSync';
 import { getRegionCode, i18n } from '../util/commonfunc';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { ExternalLink } from 'lucide-react';
 
 interface BirdSongAppProps {
   onOpenInNewWindow?: () => void;
@@ -79,14 +81,6 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // syncWithOffscreen と updateAudioHistoryCount は useCallback でメモ化されているため、依存配列に追加不要
 
-  const SyncStyle = {
-    fontSize: '10px',
-    color: '#666',
-    textAlign: 'center',
-    marginTop: '-8px',
-    marginBottom: '8px'
-  } as React.CSSProperties;
-  
   // ローディング中の表示
   if (syncing) {
     return (
@@ -96,7 +90,7 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
           <p className="subtitle">{i18n('appSubtitle')}</p>
         </header>
         <main className="popup-content">
-          <div className="info-section" style={{ padding: '40px 20px' }}>
+          <div className="info-section py-10 px-5">
             <p className="info-text">
               {i18n('syncingWithPlayer')}
             </p>
@@ -109,22 +103,38 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
   console.log(`[BirdSongApp] isPlaying: ${isPlaying}, isPaused: ${isPaused}, currentBird: ${currentBird?.commonName}, region: ${region}, loading: ${loading}, syncing: ${syncing}`);
 
   return (
-    <div className="popup-container">
-      {/* ヘッダー */}
-      <header className="popup-header" style={{ position: 'relative' }}>
-        <WaitingStatus />
-        <h1>🎵 BirdSong</h1>
-        <p className="subtitle">{i18n('appSubtitle')}</p>
-        {onOpenInNewWindow && (
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={onOpenInNewWindow}
-            style={{ marginTop: '10px' }}
-          >
-            {i18n('openInPopup')}
-          </button>
-        )}
-      </header>
+    <TooltipProvider delayDuration={100}>
+      <div className="popup-container">
+        {/* ヘッダー */}
+        <header className="popup-header relative">
+          <WaitingStatus />
+          <div className="flex items-center justify-center gap-2">
+            {/* タイトル */}
+            <div className="flex flex-col items-center w-[90%]">
+              <h1 className="mb-1">🎵 BirdSong</h1>
+              <p className="subtitle m-0">{i18n('appSubtitle')}</p>
+            </div>
+            {/* 別ウインドウで開くボタン */}
+            {onOpenInNewWindow && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-end justify-center mt-auto mb-1">
+                    <button
+                      className="btn btn-sub-icon p-2 h-auto"
+                      onClick={onOpenInNewWindow}
+                      aria-label={i18n('openInNewWindow')}
+                    >
+                      <ExternalLink size={18} />
+                    </button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{i18n('openInNewWindow')}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </header>
 
       {/* メインコンテンツ */}
       <main className="popup-content">
@@ -155,7 +165,7 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
 
         {/* 🔥 同期状態の表示 */}
         {/* {isPlaying && (
-          <div style={SyncStyle}>
+          <div className="text-[10px] text-gray-600 text-center -mt-2 mb-2">
             🔄 Synced with background player
           </div>
         )} */}
@@ -183,6 +193,7 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
           {i18n('poweredBy')} <a href="https://www.macaulaylibrary.org/" target="_blank">Macaulay Library</a>
         </p>
       </footer>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

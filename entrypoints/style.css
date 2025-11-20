@@ -57,6 +57,10 @@ body {
   /* Shadow Colors */
   --color-shadow-button: rgba(0, 0, 0, 0.15);
   
+  /* Popover/Tooltip Colors */
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1f2937;
+  
   /* Font */
   --font-sans: system-ui, -apple-system, sans-serif;
   
@@ -281,6 +285,10 @@ body {
 
 .btn-secondary {
   background: var(--color-button-secondary);
+  color: var(--color-white);
+}
+.btn-sub-icon {
+  background: none;
   color: var(--color-white);
 }
 

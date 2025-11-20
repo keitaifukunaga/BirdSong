@@ -139,6 +139,7 @@ export default function PlaybackControls({
   return (
     <section className="control-section">
       {!isPlaying ? (
+        // 再生開始ボタン
         <button
           className="btn btn-primary btn-large"
           onClick={handleStart}
@@ -149,6 +150,7 @@ export default function PlaybackControls({
       ) : (
         <div className="playback-controls">
           {!isPaused ? (
+            // 一時停止ボタン
             <button
               className="btn btn-warning"
               onClick={handlePause}
@@ -157,6 +159,7 @@ export default function PlaybackControls({
               {i18n('pause')}
             </button>
           ) : (
+            // 再開ボタン
             <button
               className="btn btn-success"
               onClick={handleResume}
@@ -165,6 +168,7 @@ export default function PlaybackControls({
               {i18n('resume')}
             </button>
           )}
+          {/* スキップボタン */}
           <button
             className="btn btn-secondary"
             onClick={playNext}
@@ -172,6 +176,7 @@ export default function PlaybackControls({
           >
             {i18n('skip')}
           </button>
+          {/* 停止ボタン */}
           <button
             className="btn btn-danger"
             onClick={handleStop}

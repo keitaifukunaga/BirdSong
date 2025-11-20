@@ -11,6 +11,10 @@
     "message": "🔗 ポップアップで開く",
     "description": "Button to open the extension in popup mode"
   },
+  "openInNewWindow": {
+    "message": "別ウインドウで開く",
+    "description": "Tooltip text for open in new window button"
+  },
   "pressPlayToStart": {
     "message": "🎵 再生ボタンを押して開始してください！",
     "description": "Message prompting user to start playback"

@@ -140,10 +140,12 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
       )}
 
       <div className="bird-details">
-        <div className="bird-name" style={{ display: 'inline' }}>{bird.commonName}</div>
-        <span className="scientific-name" style={{ display: 'inline', marginLeft: '0.5em' }}>
-          <em>{bird.scientificName}</em>
-        </span>
+        <div className="flex flex-row items-center justify-start">
+          <div className="bird-name">{bird.commonName}</div>
+          <div className="scientific-name">
+            <em>{bird.scientificName}</em>
+          </div>
+        </div>
 
         {bird.location && (
           <p className="location">📍 {bird.location}</p>

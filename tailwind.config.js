@@ -5,7 +5,14 @@ export default {
     "./src/**/*.{ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        popover: {
+          DEFAULT: 'var(--color-popover)',
+          foreground: 'var(--color-popover-foreground)',
+        },
+      },
+    },
   },
   plugins: [],
 }
