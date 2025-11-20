@@ -158,10 +158,6 @@ export default function BirdInfo({ bird, isPaused, isPlaying }: BirdInfoProps) {
         {bird.location && (
           <p className="location">📍 {bird.location}</p>
         )}
-
-        {bird.recordist && (
-          <p className="recordist">🎤 {bird.recordist}</p>
-        )}
       </div>
     </section>
   );
