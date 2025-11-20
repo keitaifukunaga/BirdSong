@@ -189,8 +189,12 @@ export default function BirdSongApp({ onOpenInNewWindow }: BirdSongAppProps) {
 
       {/* フッター */}
       <footer className="popup-footer">
-        <p className="credit">
-          {i18n('poweredBy')} <a href="https://www.macaulaylibrary.org/" target="_blank">Macaulay Library</a>
+        <p className="credit text-xs">
+          <a href="https://ebird.org" target="_blank" rel="noopener noreferrer">
+            {i18n('dataSourceEbird')}
+          </a>
+          {' | '}
+          {i18n('poweredBy')} <a href="https://www.macaulaylibrary.org/" target="_blank" rel="noopener noreferrer">Macaulay Library</a>
         </p>
       </footer>
       </div>

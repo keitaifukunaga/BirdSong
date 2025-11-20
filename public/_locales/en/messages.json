@@ -176,5 +176,19 @@
         "example": "Network error"
       }
     }
+  },
+  "mediaCredit": {
+    "message": "by $RECORDIST$; Macaulay Library",
+    "description": "Credit text for media (image/video)",
+    "placeholders": {
+      "recordist": {
+        "content": "$1",
+        "example": "John Smith"
+      }
+    }
+  },
+  "dataSourceEbird": {
+    "message": "Data: eBird.org",
+    "description": "Credit text for eBird data source"
   }
 }
